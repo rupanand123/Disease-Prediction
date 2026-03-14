@@ -629,9 +629,50 @@ const Insights = () => {
   return (
     <div className="space-y-8">
       <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl">
-        <h2 className="text-2xl font-bold text-white mb-2">UCI Dataset Insights</h2>
-        <p className="text-zinc-400 mb-8">Statistical overview of the datasets used to train our models.</p>
+        <h2 className="text-2xl font-bold text-white mb-2">Medical Datasets & Research</h2>
+        <p className="text-zinc-400 mb-8">Our models are trained on globally recognized medical datasets to ensure high predictive accuracy.</p>
         
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[
+            { 
+              title: "Pima Indians Diabetes", 
+              source: "National Institute of Diabetes", 
+              count: "768 Records", 
+              features: "Glucose, BMI, Age, Insulin",
+              color: "text-blue-400"
+            },
+            { 
+              title: "UCI Heart Disease", 
+              source: "Cleveland Clinic Foundation", 
+              count: "303 Records", 
+              features: "BP, Cholesterol, Thalassemia",
+              color: "text-red-400"
+            },
+            { 
+              title: "Wisconsin Breast Cancer", 
+              source: "University of Wisconsin", 
+              count: "569 Records", 
+              features: "Radius, Texture, Perimeter",
+              color: "text-pink-400"
+            }
+          ].map((ds, i) => (
+            <div key={i} className="bg-zinc-950 border border-zinc-800 p-6 rounded-xl">
+              <h4 className={cn("font-bold mb-1", ds.color)}>{ds.title}</h4>
+              <p className="text-zinc-500 text-xs mb-4">{ds.source}</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400">Sample Size</span>
+                  <span className="text-white font-medium">{ds.count}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400">Key Features</span>
+                  <span className="text-white font-medium">{ds.features}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <h3 className="text-white font-bold flex items-center gap-2">
