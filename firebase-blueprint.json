@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient medical data and prediction history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who owns this record" },
+        "name": { "type": "string", "description": "Patient name" },
+        "age": { "type": "number" },
+        "gender": { "type": "string", "enum": ["male", "female", "other"] },
+        "bloodPressure": { "type": "number" },
+        "cholesterol": { "type": "number" },
+        "glucose": { "type": "number" },
+        "bmi": { "type": "number" },
+        "heartRate": { "type": "number" },
+        "symptoms": { "type": "array", "items": { "type": "string" } },
+        "familyHistory": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "age", "createdAt"]
+    },
+    "Prediction": {
+      "title": "Prediction",
+      "description": "Disease prediction result",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "diseaseType": { "type": "string", "enum": ["heart_disease", "diabetes", "breast_cancer"] },
+        "probability": { "type": "number" },
+        "riskLevel": { "type": "string", "enum": ["low", "moderate", "high"] },
+        "recommendation": { "type": "string" },
+        "modelUsed": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "diseaseType", "probability", "timestamp"]
+    }
+  },
+  "firestore": {
+    "patients": {
+      "schema": "Patient",
+      "description": "Collection of patient records"
+    },
+    "predictions": {
+      "schema": "Prediction",
+      "description": "Collection of prediction results"
+    }
+  }
+}

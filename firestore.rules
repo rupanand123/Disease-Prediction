@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: patients
+    // Fields: userId, name, age, gender, bloodPressure, cholesterol, glucose, bmi, heartRate, symptoms, familyHistory, createdAt
+    //
+    // Collection: predictions
+    // Fields: userId, patientId, diseaseType, probability, riskLevel, recommendation, modelUsed, timestamp
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidPatient(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.age is number && data.age >= 0 && data.age < 150;
+    }
+
+    function isValidPrediction(data) {
+      return data.userId == request.auth.uid &&
+             data.diseaseType in ['heart_disease', 'diabetes', 'breast_cancer'] &&
+             data.probability is number && data.probability >= 0 && data.probability <= 1;
+    }
+
+    match /patients/{patientId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidPatient(request.resource.data);
+      allow update: if isDocOwner() && isValidPatient(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /predictions/{predictionId} {
+      allow read: if isDocOwner();
+      allow create: if isAuthenticated() && isValidPrediction(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+  }
+}
