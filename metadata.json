@@ -2,7 +2,6 @@
   "name": "Disease Prediction AI",
   "description": "AI-powered medical diagnostic tool for predicting heart disease, diabetes, and breast cancer using machine learning and Gemini.",
   "requestFramePermissions": [
-    "camera",
-    "microphone"
+    "geolocation"
   ]
 }

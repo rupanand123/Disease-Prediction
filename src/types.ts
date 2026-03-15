@@ -27,4 +27,4 @@ export interface Prediction {
   timestamp: string;
 }
 
-export type Page = 'dashboard' | 'predict' | 'insights' | 'performance' | 'chat';
+export type Page = 'home' | 'dashboard' | 'predict' | 'insights' | 'performance' | 'chat';

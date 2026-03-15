@@ -6,7 +6,7 @@ import {
   Activity, Heart, Brain, ClipboardList, BarChart3, MessageSquare, 
   LogOut, LogIn, User as UserIcon, Plus, History, TrendingUp, 
   AlertCircle, CheckCircle2, Info, ChevronRight, Search, FileText,
-  Stethoscope, Thermometer, Droplets
+  Stethoscope, Thermometer, Droplets, Home as HomeIcon, Shield, Zap
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -24,12 +24,242 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// --- Error Handling ---
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
+          <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-2xl max-w-lg w-full shadow-2xl">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-white text-center mb-4">Something went wrong</h2>
+            <p className="text-zinc-400 text-center mb-6">
+              An unexpected error occurred. Please try refreshing the page.
+            </p>
+            <div className="bg-black/50 rounded-xl p-4 mb-6 overflow-auto max-h-40">
+              <code className="text-xs text-red-400 break-all">
+                {this.state.error?.message || String(this.state.error)}
+              </code>
+            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-zinc-800 text-white py-3 rounded-xl font-medium hover:bg-zinc-700 transition-all"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // --- Components ---
 
+const Home = ({ setActivePage }: { setActivePage: (p: Page) => void }) => {
+  return (
+    <div className="max-w-6xl mx-auto space-y-20 py-10">
+      <section className="text-center space-y-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold uppercase tracking-wider"
+        >
+          <Zap className="w-4 h-4" /> Next-Gen Medical Diagnostics
+        </motion.div>
+        
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-6xl md:text-7xl font-bold text-white tracking-tight leading-tight"
+        >
+          Predicting Health with <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-500">AI Precision</span>
+        </motion.h1>
+        
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-zinc-400 text-xl max-w-2xl mx-auto leading-relaxed"
+        >
+          MedPredict AI combines advanced machine learning with generative intelligence to provide instant, data-driven risk assessments for major health conditions.
+        </motion.p>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex flex-wrap justify-center gap-4 pt-4"
+        >
+          <button 
+            onClick={() => setActivePage('predict')}
+            className="bg-emerald-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2"
+          >
+            Start Prediction <ChevronRight className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setActivePage('insights')}
+            className="bg-zinc-900 text-white border border-zinc-800 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-800 transition-all"
+          >
+            Explore Datasets
+          </button>
+        </motion.div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {[
+          { 
+            title: "Heart Disease", 
+            desc: "Analyze cardiovascular risk factors including blood pressure, cholesterol, and age.",
+            icon: Heart,
+            color: "text-red-400",
+            bg: "bg-red-400/10"
+          },
+          { 
+            title: "Diabetes Risk", 
+            desc: "Predict diabetic likelihood based on glucose levels, BMI, and family history.",
+            icon: Activity,
+            color: "text-blue-400",
+            bg: "bg-blue-400/10"
+          },
+          { 
+            title: "Breast Cancer", 
+            desc: "Advanced screening analysis using Wisconsin diagnostic dataset parameters.",
+            icon: Brain,
+            color: "text-pink-400",
+            bg: "bg-pink-400/10"
+          }
+        ].map((feature, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 + (i * 0.1) }}
+            className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl hover:border-zinc-700 transition-all group"
+          >
+            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform", feature.bg)}>
+              <feature.icon className={cn("w-7 h-7", feature.color)} />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+            <p className="text-zinc-400 leading-relaxed">{feature.desc}</p>
+          </motion.div>
+        ))}
+      </section>
+
+      <section className="bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-12 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 blur-[100px] rounded-full" />
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <h2 className="text-4xl font-bold text-white">AI-Powered Health Assistant</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">
+              Our integrated chatbot uses Gemini 3.1 Pro with Thinking Mode to explain your results, answer medical queries, and provide personalized health guidance.
+            </p>
+            <ul className="space-y-4">
+              {[
+                "Instant explanation of risk factors",
+                "Personalized lifestyle recommendations",
+                "Deep reasoning on medical data",
+                "24/7 health guidance"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-zinc-300">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button 
+              onClick={() => setActivePage('chat')}
+              className="inline-flex items-center gap-2 text-emerald-400 font-bold hover:text-emerald-300 transition-colors"
+            >
+              Try Health Assistant <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-6 border-b border-zinc-800 pb-4">
+              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                <Brain className="text-white w-5 h-5" />
+              </div>
+              <span className="text-white font-bold text-sm">AI Assistant</span>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-zinc-900 p-4 rounded-xl rounded-tl-none text-sm text-zinc-300">
+                How can I interpret my heart disease risk score?
+              </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl rounded-tr-none text-sm text-emerald-400">
+                Your score is based on blood pressure and cholesterol levels. A 15% probability suggests...
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="text-center py-10">
+        <div className="flex items-center justify-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all">
+          <Shield className="w-8 h-8" />
+          <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Secure & Encrypted</span>
+          <div className="w-1 h-1 bg-zinc-700 rounded-full" />
+          <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">HIPAA Compliant Design</span>
+        </div>
+      </section>
+    </div>
+  );
+};
+
 const Sidebar = ({ activePage, setActivePage, user }: { activePage: Page, setActivePage: (p: Page) => void, user: User | null }) => {
   const menuItems: { id: Page, label: string, icon: any }[] = [
+    { id: 'home', label: 'Home', icon: HomeIcon },
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'predict', label: 'New Prediction', icon: Plus },
     { id: 'insights', label: 'Dataset Insights', icon: BarChart3 },
@@ -260,6 +490,7 @@ const PredictionForm = ({ user }: { user: User | null }) => {
         body: JSON.stringify(formData)
       });
       
+      if (!response.ok) throw new Error('Prediction service failed');
       const predictionData = await response.json();
       
       const newPrediction: Prediction = {
@@ -268,26 +499,38 @@ const PredictionForm = ({ user }: { user: User | null }) => {
         probability: predictionData.probability,
         riskLevel: predictionData.riskLevel,
         recommendation: predictionData.recommendation,
+        medications: predictionData.medications,
         modelUsed: predictionData.modelUsed,
         timestamp: new Date().toISOString()
       };
 
-      const patientRef = await addDoc(collection(db, 'patients'), {
-        userId: user.uid,
-        name: formData.name,
-        age: formData.age,
-        gender: formData.gender,
-        bloodPressure: formData.bloodPressure,
-        cholesterol: formData.cholesterol,
-        glucose: formData.glucose,
-        bmi: formData.bmi,
-        heartRate: formData.heartRate,
-        familyHistory: formData.familyHistory,
-        createdAt: new Date().toISOString()
-      });
+      let patientRef;
+      try {
+        patientRef = await addDoc(collection(db, 'patients'), {
+          userId: user.uid,
+          name: formData.name,
+          age: formData.age,
+          gender: formData.gender,
+          bloodPressure: formData.bloodPressure,
+          cholesterol: formData.cholesterol,
+          glucose: formData.glucose,
+          bmi: formData.bmi,
+          heartRate: formData.heartRate,
+          familyHistory: formData.familyHistory,
+          createdAt: new Date().toISOString()
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'patients');
+      }
 
-      newPrediction.patientId = patientRef.id;
-      await addDoc(collection(db, 'predictions'), newPrediction);
+      if (patientRef) {
+        newPrediction.patientId = patientRef.id;
+        try {
+          await addDoc(collection(db, 'predictions'), newPrediction);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.CREATE, 'predictions');
+        }
+      }
       
       setResult(newPrediction);
     } catch (err) {
@@ -529,7 +772,8 @@ const Chatbot = () => {
     setLoading(true);
 
     try {
-      const result = await ai.models.generateContent({
+      const aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const result = await aiInstance.models.generateContent({
         model: "gemini-3.1-pro-preview",
         contents: [{ role: 'user', parts: [{ text: userMsg }] }],
         config: {
@@ -792,7 +1036,7 @@ const Performance = () => {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [activePage, setActivePage] = useState<Page>('dashboard');
+  const [activePage, setActivePage] = useState<Page>('home');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -819,6 +1063,8 @@ export default function App() {
     );
     const unsubPreds = onSnapshot(qPreds, (snap) => {
       setPredictions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Prediction)));
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'predictions');
     });
 
     const qPatients = query(
@@ -827,6 +1073,8 @@ export default function App() {
     );
     const unsubPatients = onSnapshot(qPatients, (snap) => {
       setPatients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient)));
+    }, (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'patients');
     });
 
     return () => {
@@ -844,66 +1092,69 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} user={user} />
-      
-      <main className="pl-64 min-h-screen">
-        <header className="h-20 border-b border-zinc-800 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl sticky top-0 z-40">
-          <div>
-            <h2 className="text-white font-bold text-xl capitalize">{activePage.replace('_', ' ')}</h2>
-            <p className="text-zinc-500 text-xs">Welcome back, {user?.displayName || 'Guest'}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-              <input 
-                type="text" 
-                placeholder="Search records..." 
-                className="bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all w-64"
-              />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-black text-zinc-300 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+        <Sidebar activePage={activePage} setActivePage={setActivePage} user={user} />
+        
+        <main className="pl-64 min-h-screen">
+          <header className="h-20 border-b border-zinc-800 flex items-center justify-between px-8 bg-black/50 backdrop-blur-xl sticky top-0 z-40">
+            <div>
+              <h2 className="text-white font-bold text-xl capitalize">{activePage.replace('_', ' ')}</h2>
+              <p className="text-zinc-500 text-xs">Welcome back, {user?.displayName || 'Guest'}</p>
             </div>
-            <button className="p-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 transition-colors relative">
-              <Activity className="w-5 h-5 text-zinc-400" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-zinc-900" />
-            </button>
-          </div>
-        </header>
-
-        <div className="p-8 max-w-7xl mx-auto">
-          {!user && activePage !== 'insights' && activePage !== 'performance' ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mb-6">
-                <Brain className="w-10 h-10 text-emerald-500" />
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search records..." 
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all w-64"
+                />
               </div>
-              <h2 className="text-3xl font-bold text-white mb-4">Unlock AI Diagnostics</h2>
-              <p className="text-zinc-400 max-w-md mb-8">Sign in with your Google account to access personalized disease prediction, patient history, and AI health assistance.</p>
-              <button 
-                onClick={() => signInWithPopup(auth, googleProvider)}
-                className="flex items-center gap-3 bg-white text-black px-8 py-4 rounded-2xl font-bold hover:bg-zinc-200 transition-all shadow-xl shadow-white/5"
-              >
-                <LogIn className="w-5 h-5" />
-                Sign In with Google
+              <button className="p-2 bg-zinc-900 border border-zinc-800 rounded-xl hover:bg-zinc-800 transition-colors relative">
+                <Activity className="w-5 h-5 text-zinc-400" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-zinc-900" />
               </button>
             </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activePage}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                {activePage === 'dashboard' && <Dashboard predictions={predictions} patients={patients} />}
-                {activePage === 'predict' && <PredictionForm user={user} />}
-                {activePage === 'insights' && <Insights />}
-                {activePage === 'performance' && <Performance />}
-                {activePage === 'chat' && <Chatbot />}
-              </motion.div>
-            </AnimatePresence>
-          )}
-        </div>
-      </main>
-    </div>
+          </header>
+
+          <div className="p-8 max-w-7xl mx-auto">
+            {!user && activePage !== 'home' && activePage !== 'insights' && activePage !== 'performance' ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mb-6">
+                  <Brain className="w-10 h-10 text-emerald-500" />
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-4">Unlock AI Diagnostics</h2>
+                <p className="text-zinc-400 max-w-md mb-8">Sign in with your Google account to access personalized disease prediction, patient history, and AI health assistance.</p>
+                <button 
+                  onClick={() => signInWithPopup(auth, googleProvider)}
+                  className="flex items-center gap-3 bg-white text-black px-8 py-4 rounded-2xl font-bold hover:bg-zinc-200 transition-all shadow-xl shadow-white/5"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Sign In with Google
+                </button>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePage}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {activePage === 'home' && <Home setActivePage={setActivePage} />}
+                  {activePage === 'dashboard' && <Dashboard predictions={predictions} patients={patients} />}
+                  {activePage === 'predict' && <PredictionForm user={user} />}
+                  {activePage === 'insights' && <Insights />}
+                  {activePage === 'performance' && <Performance />}
+                  {activePage === 'chat' && <Chatbot />}
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 }
